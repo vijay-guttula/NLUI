@@ -1,5 +1,10 @@
 import pyttsx3
 import speech_recognition as sr
+
+import datetime
+import time
+from threading import Timer
+
 import smtplib
 from tkinter import *
 import tkinter
@@ -12,12 +17,13 @@ import nltk
 from nltk.stem import WordNetLemmatizer
 lemmatizer = WordNetLemmatizer()
 
+
 engine = pyttsx3.init('sapi5')
 voices = engine.getProperty('voices')
 # for voice in voices:
 #    print(voice)
 
-engine.setProperty('voice', voices[0].id)
+engine.setProperty('voice', voices[1].id)
 # engine.say("hello")
 # engine.runAndWait()
 # exit()
@@ -103,21 +109,35 @@ def send():
         ChatLog.yview(END)
 
 
+def text(msg):
+    ChatLog.config(state=NORMAL)
+    ChatLog.insert(END, "Friday: " + msg + '\n\n')
+    ChatLog.config(state=DISABLED)
+    ChatLog.yview(END)
+
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
+
 def hear():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print("Listening..")
+        ChatLog.config(state=NORMAL)
+        ChatLog.insert(END, 'listening...\n\n')
+        ChatLog.config(foreground="#442265", font=("Verdana", 12))
         r.pause_threshold = 0.5
         audio = r.listen(source)
 
     try:
-        print("Recognizing..")
+        ChatLog.insert(END, 'recognizing...\n\n')
         query = r.recognize_google(audio, language='en-in')
-        print(f"User said: {query}")
 
     except Exception as e:
         # print(e)
-        print("Say that again please..")
+        ChatLog.insert(END, "Say that again please..\n\n")
+        time.sleep(1)
         speak("Say that again please")
         return "None"
     return query
@@ -126,14 +146,30 @@ def hear():
 def receive():
     query = hear()
 
-    res = chatbot_response(query)
-
     ChatLog.config(state=NORMAL)
-    ChatLog.insert(END, "Friday: " + res + '\n\n')
-    ChatLog.config(state=DISABLED)
-    ChatLog.yview(END)
-    engine.say(res)
-    engine.runAndWait()
+    ChatLog.insert(END, "You: " + query + '\n\n')
+    ChatLog.config(foreground="#442265", font=("Verdana", 12))
+
+    res = chatbot_response(query)
+    text(res)
+    time.sleep(1)
+    speak(res)
+
+
+def wishme():
+    h = int(datetime.datetime.now().hour)
+    if h >= 0 and h < 12:
+        text("Good Morning Boss!")
+        speak("Good Morning Boss!")
+    elif h >= 12 and h < 18:
+        text("Good Afternoon Boss!")
+        time.sleep(5)
+        speak("Good Afternoon Boss!")
+    else:
+        text("Good Evening Boss!")
+        speak("Good Evening Boss!")
+    text("What can I do for you?")
+    speak("What can I do for you?")
 
 
 base = Tk()
@@ -153,7 +189,7 @@ scrollbar = Scrollbar(base, command=ChatLog.yview, cursor="heart")
 ChatLog['yscrollcommand'] = scrollbar.set
 
 # Create Button to send message
-SendButton = Button(base, font=("Verdana", 12, 'bold'), text="Send", width="12", height=5,
+SendButton = Button(base, font=("Verdana", 12, 'bold'), text="Send", width="6", height="3",
                     bd=0, bg="#32de97", activebackground="#3c9d9b", fg='#ffffff',
                     command=send)
 
@@ -171,6 +207,8 @@ scrollbar.place(x=376, y=6, height=386)
 ChatLog.place(x=6, y=6, height=386, width=370)
 EntryBox.place(x=128, y=401, height=90, width=265)
 SendButton.place(x=6, y=401, height=80)
-MyButton6.place(x=6, y=401)
+MyButton6.place(x=80, y=401)
 
+t = Timer(4, wishme())
+t.start()
 base.mainloop()
